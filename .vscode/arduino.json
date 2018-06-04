@@ -1,0 +1,6 @@
+{
+    "sketch": "inav_rangefinder.ino",
+    "board": "arduino:avr:pro",
+    "configuration": "cpu=8MHzatmega328",
+    "port": "COM6"
+}
