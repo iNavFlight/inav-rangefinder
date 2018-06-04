@@ -1,7 +1,7 @@
 /*
  * Decide on rangefinder type here. Only one type should be uncommented
  */
-//  #define USE_US100
+// #define USE_US100
 #define USE_HCSR04
 // #define USE_URM37
 
@@ -10,7 +10,7 @@
  */
 #define I2C_SLAVE_ADDRESS 0x14
 
-// #define DEBUG;
+#define DEBUG
 
 #define TRIGGER_PIN A2
 #define ECHO_PIN A1
@@ -36,6 +36,11 @@
 #ifdef USE_HCSR04
   #define PULSE_TO_CM 58 //Multiplier pulse length to distance in [cm]
   #define MAX_RANGE 300 //Range of 4 meters
+#endif
+
+#ifdef USE_URM37
+    #define PULSE_TO_CM 50 //Multiplier pulse length to distance in [cm]
+    #define MAX_RANGE 300 //Range of 4 meters
 #endif
 
 #define PULSE_TIMEOUT (MAX_RANGE * PULSE_TO_CM) //this is an equivalent of 4 meters range
@@ -84,22 +89,33 @@ void receiveEvent(uint8_t howMany) {
 }
 
 void setup() {
-  pinMode(TRIGGER_PIN, OUTPUT);
-  pinMode(ECHO_PIN, INPUT);
-  pinMode(LED_PIN, OUTPUT);
+    pinMode(TRIGGER_PIN, OUTPUT);
 
-  /*
-   * Setup I2C
-   */
-  Wire.begin(I2C_SLAVE_ADDRESS);
-  Wire.onRequest(requestEvent);
-  Wire.onReceive(receiveEvent);
+    pinMode(ECHO_PIN, INPUT);
+    pinMode(LED_PIN, OUTPUT);
+
+    /*
+     * Setup I2C
+     */
+    Wire.begin(I2C_SLAVE_ADDRESS);
+    Wire.onRequest(requestEvent);
+    Wire.onReceive(receiveEvent);
 
   Serial.begin(115200);
+
+#ifdef USE_URM37
+    pinMode(TRIGGER_PIN, HIGH);
+    delay(500);
+#endif
+
 }
 
 long microsecondsToCentimeters(long microseconds){
+#ifdef USE_URM37
+    return microseconds / PULSE_TO_CM;
+#else
   return (microseconds * 34 / 100 / 2) / 10;
+#endif;
 }
 
 void loop() {
@@ -111,6 +127,12 @@ void loop() {
    */
   if (millis() > nextUpdate) {
     
+#ifdef USE_URM37
+    digitalWrite(TRIGGER_PIN, LOW);
+    delay(5);
+    digitalWrite(TRIGGER_PIN, HIGH); 
+    long duration = pulseIn(ECHO_PIN, LOW, PULSE_TIMEOUT);
+#else
     digitalWrite(TRIGGER_PIN, LOW);
     delayMicroseconds(2);
     digitalWrite(TRIGGER_PIN, HIGH);
@@ -119,6 +141,7 @@ void loop() {
     digitalWrite(TRIGGER_PIN, LOW);
 
     long duration = pulseIn(ECHO_PIN, HIGH, PULSE_TIMEOUT);
+  #endif
 
     if (duration > 0) {
       i2c_regs[0] = STATUS_OK;
@@ -132,6 +155,7 @@ void loop() {
     i2c_regs[2] = cm & 0xFF;
 
 #ifdef DEBUG
+    Serial.print("Regs: ");
     Serial.print(i2c_regs[0]);
     Serial.print(" ");
     Serial.print(i2c_regs[1]);
@@ -139,6 +163,6 @@ void loop() {
     Serial.println(i2c_regs[2]);
  #endif    
 
-    nextUpdate = millis() + 100;
+    nextUpdate = millis() + 200;
   }
 }
