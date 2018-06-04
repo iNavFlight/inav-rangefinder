@@ -10,7 +10,7 @@
  */
 #define I2C_SLAVE_ADDRESS 0x14
 
-#define DEBUG
+// #define DEBUG
 
 #define TRIGGER_PIN A2
 #define ECHO_PIN A1
