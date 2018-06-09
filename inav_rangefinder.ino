@@ -1,8 +1,8 @@
 /*
  * Decide on rangefinder type here. Only one type should be uncommented
  */
-// #define USE_US100
-#define USE_HCSR04
+#define USE_US100
+// #define USE_HCSR04
 // #define USE_URM37
 
 /*
