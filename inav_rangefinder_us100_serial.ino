@@ -1,7 +1,12 @@
-#include <PingSerial.h>
-/*
- * Set I2C Slave address
- */
+//#define DEBUG
+#include <SoftwareSerial.h>;
+ 
+#define US100_TX 5
+#define US100_RX 4
+#define LED_PIN 13
+
+SoftwareSerial US100(US100_RX, US100_TX);
+
 #define I2C_SLAVE_ADDRESS 0x14
 
 #define STATUS_OK 0
@@ -12,15 +17,6 @@
 #ifndef TWI_RX_BUFFER_SIZE
   #define TWI_RX_BUFFER_SIZE ( 16 )
 #endif
-
-  #define MIN_RANGE 100  //Range of 10 cm meters
-  #define MAX_RANGE 4000 //Range of 4 meters
-
-PingSerial us100(Serial, MIN_RANGE, MAX_RANGE);  // Valid measurements are 650-1200mm
-
-bool ping_enabled = FALSE;
-unsigned int pingSpeed = 200; // How frequently are we going to send out a ping (in milliseconds). 50ms would be 20 times a second.
-unsigned long pingTimer = 0;     // Holds the next ping time.
 
 uint8_t i2c_regs[] =
 {
@@ -39,17 +35,10 @@ void requestEvent()
 
 void receiveEvent(uint8_t howMany) {
 
-    if (howMany < 1) {
+    if (howMany < 1 || howMany > TWI_RX_BUFFER_SIZE) {
         // Sanity-check
         return;
     }
-
-    if (howMany > TWI_RX_BUFFER_SIZE)
-    {
-        // Also insane number
-        return;
-    }
-
     reg_position = Wire.read();
 
     howMany--;
@@ -66,40 +55,72 @@ void receiveEvent(uint8_t howMany) {
 }
 
 void setup() {
-  us100.begin();
- /*
-  * Setup I2C
-  */
+
+#ifdef DEBUG
+  Serial.begin(9600);
+  while (!Serial) {
+    ; // wait for serial port to connect. Needed for native USB port only
+  }
+#endif
+
+  pinMode(US100_RX, INPUT);
+  pinMode(US100_TX, OUTPUT);
+  pinMode(LED_PIN, OUTPUT);
+  
+  US100.begin(9600);
+  
   Wire.begin(I2C_SLAVE_ADDRESS);
   Wire.onRequest(requestEvent);
   Wire.onReceive(receiveEvent);
 }
 
+#define MIN_RANGE 2   //Range of 2 cm 
+#define MAX_RANGE 400 //Range of 400 cm
+
+int buffer[2];
+
 void loop() {
-
-  byte data_available;
-  unsigned int current_height = 0;
-
-  data_available = us100.data_available();
-
-  if (data_available & DISTANCE) {
-      current_height = us100.get_distance();
-
-      if (current_height > MAX_RANGE || current_height < MIN_RANGE) {
-        i2c_regs[0] = STATUS_OUT_OF_RANGE;
-      }
-      else {
-        uint16_t cm = (uint16_t) current_height/10;
-        i2c_regs[0] = STATUS_OK;
-
+  US100.listen();
+  US100.flush();
+  US100.write(0x55);
+  
+  delay(50);
+  if(US100.available() >= 2) {
+    for (int i=0; i<2; i++) {
+      buffer[i] = US100.read();
+    }
+    
+    int cm = (((buffer[0] * 256) + buffer[1])/10 );
+    if ((cm < MAX_RANGE) && (cm > MIN_RANGE)) {
+      
+      i2c_regs[0] = STATUS_OK;
+      i2c_regs[1] = cm >> 8;
+      i2c_regs[2] = cm & 0xFF;
+    }
+    else {
+      i2c_regs[0] = STATUS_OUT_OF_RANGE;
+      if (cm > MAX_RANGE) {
+        cm = MAX_RANGE;
         i2c_regs[1] = cm >> 8;
         i2c_regs[2] = cm & 0xFF;
       }
-  }
-  
-  if (ping_enabled && (millis() >= pingTimer)) {   // pingSpeed milliseconds since last ping, do another ping.
-      pingTimer = millis() + pingSpeed;      // Set the next ping time.
-      us100.request_distance();
+      if (cm < MIN_RANGE) {
+        cm = 0;
+        i2c_regs[1] = cm >> 8;
+        i2c_regs[2] = cm & 0xFF;
+      }
+    }
+#ifdef DEBUG
+  Serial.print(" Regs: ");
+  Serial.print(i2c_regs[0]);
+  Serial.print(" ");
+  Serial.print(i2c_regs[1]<<8);
+  Serial.print(" ");
+  Serial.print(i2c_regs[2]);
+  Serial.print(" ");
+  Serial.println(cm);
+#endif
   }
 
+  delay(50);
 }
