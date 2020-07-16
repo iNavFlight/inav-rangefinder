@@ -115,7 +115,7 @@ long microsecondsToCentimeters(long microseconds){
     return microseconds / PULSE_TO_CM;
 #else
   return (microseconds * 34 / 100 / 2) / 10;
-#endif;
+#endif
 }
 
 void loop() {
