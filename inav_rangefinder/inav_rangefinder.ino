@@ -60,7 +60,7 @@ void requestEvent()
     Wire.write(i2c_regs, 3);
 }
 
-void receiveEvent(uint8_t howMany) {
+void receiveEvent(int howMany) {
 
     if (howMany < 1) {
         // Sanity-check
