@@ -22,7 +22,7 @@
 #include <Wire.h>
 
 #ifndef TWI_RX_BUFFER_SIZE
-#define TWI_RX_BUFFER_SIZE ( 16 )
+  #define TWI_RX_BUFFER_SIZE ( 16 )
 #endif
 
 /*
@@ -141,7 +141,7 @@ void loop() {
     digitalWrite(TRIGGER_PIN, LOW);
 
     long duration = pulseIn(ECHO_PIN, HIGH, PULSE_TIMEOUT);
-  #endif
+#endif
 
     if (duration > 0) {
       i2c_regs[0] = STATUS_OK;
@@ -161,7 +161,7 @@ void loop() {
     Serial.print(i2c_regs[1]);
     Serial.print(" ");
     Serial.println(i2c_regs[2]);
- #endif    
+#endif    
 
     nextUpdate = millis() + 200;
   }
