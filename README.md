@@ -11,7 +11,16 @@
 
 ![Diagram](inav-rangefinder_schem.png)
 
-## Configuration
+## Build & Configuration
+
+If you are using a non seral version, open the
+inav_rangefinder/inav_rangefinder.ino file in the Arduino IDE. For the
+sersial version open the
+inav_rangefinder_us100_serial/inav_rangefinder_us100_serial.ino
+file. Set the Tool->Board you are using, the port it is on.
+
+Look in the code for the #defines for the hardware you are using. It
+will look like:
 
 ```
 #define USE_US100
